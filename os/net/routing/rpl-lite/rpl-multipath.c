@@ -1,4 +1,5 @@
 #include "net/routing/rpl-lite/rpl.h"
+#include "lib/random.h"
 
 /* Log configuration */
 #include "sys/log.h"
@@ -6,8 +7,11 @@
 #define LOG_LEVEL LOG_LEVEL_RPL
 
 #define CONGESTION_INTERVAL_S ((1UL << RPL_MULTIPATH_CONGESTION_INTERVAL) * CLOCK_SECOND)
+//#define SW_INTERVAL_S (CLOCK_SECOND)
 /*---------------------------------------------------------------------------*/
 static struct ctimer congestion_timer;
+//static struct ctimer sw_parent_timer;
+//rpl_nbr_t* default_parent;
 uint16_t packet_count;
 
 /*---------------------------------------------------------------------------*/
@@ -83,6 +87,31 @@ send_congestion_notification_immediately()
 {
 }
 /*---------------------------------------------------------------------------*/
-void rpl_multipath_start() {}
+void rpl_multipath_start() {
+
+ // default_parent = curr_instance.dag.preferred_parent;
+
+     /*select path use probability 
+      int nbr_count = rpl_neighbor_count();
+      total_weight;
+      int rand = random_rand() % total_weight;
+    */
+
+    int nbr_count = rpl_neighbor_count();
+    int rand = random_rand() % 2;
+    if(rand == 0){
+      uip_ds6_defrt_multi(1, NULL);
+    }
+    else{
+      rand = random_rand() % nbr_count;
+      rpl_nbr_t *nbr = rpl_neighbor_get_from_index(rand);
+      uip_ds6_defrt_multi(1,uip_ds6_defrt_lookup(rpl_neighbor_get_ipaddr(nbr)));
+    }
+
+}
+
 /*---------------------------------------------------------------------------*/
-void rpl_multipath_stop() {}
+void rpl_multipath_stop() {
+    //rpl_neighbor_set_preferred_parent(default_parent);
+    uip_ds6_defrt_multi(0,NULL);
+}

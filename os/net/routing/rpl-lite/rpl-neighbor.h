@@ -167,6 +167,14 @@ rpl_nbr_t *rpl_neighbor_get_from_lladdr(uip_lladdr_t *addr);
 rpl_nbr_t *rpl_neighbor_get_from_ipaddr(uip_ipaddr_t *addr);
 
 /**
+ * Returns a neighbor from its index in the nbr table
+ *
+ * \param idx The index of the neighbour
+ * \return The neighbor if found, NULL otherwise
+*/
+rpl_nbr_t *rpl_neighbor_get_from_index(int idx);
+
+/**
  * Returns the number of nodes in the RPL neighbor table
  *
  * \return the neighbor count
