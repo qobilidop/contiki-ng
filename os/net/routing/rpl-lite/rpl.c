@@ -203,6 +203,9 @@ init(void)
   rpl_neighbor_init();
   rpl_timers_init();
   rpl_icmp6_init();
+#if RPL_WITH_MULTIPATH
+  rpl_multipath_init();
+#endif
 
   uip_sr_init();
 }

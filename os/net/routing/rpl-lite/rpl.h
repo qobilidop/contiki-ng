@@ -57,6 +57,7 @@
 #include "net/routing/rpl-lite/rpl-neighbor.h"
 #include "net/routing/rpl-lite/rpl-ext-header.h"
 #include "net/routing/rpl-lite/rpl-timers.h"
+#include "net/routing/rpl-lite/rpl-multipath.h"
 
 /********** Public symbols **********/
 

@@ -406,6 +406,47 @@
 #define RPL_LOOP_ERROR_DROP 0
 #endif /* RPL_CONF_LOOP_ERROR_DROP */
 
+/******************************************************************************/
+/*************************** Multipath extension ******************************/
+/******************************************************************************/
+
+/*
+ * RPL multipathing. When enabled, probes will be sent periodically to keep
+ * neighbor link estimates up to date. Further configurable
+ * via RPL_CONF_MULTIPATH_* flags
+ */
+#ifdef RPL_CONF_WITH_MULTIPATH
+#define RPL_WITH_MULTIPATH RPL_CONF_WITH_MULTIPATH
+#else
+#define RPL_WITH_MULTIPATH 0
+#endif
+
+/* The congestion detection interval (n) represents 2^n ms.
+ *
+ * The default value is set according to the default DIO interval 2^12 ms = 4.096 s.
+ */
+#ifdef RPL_CONF_MULTIPATH_CONGESTION_INTERVAL
+#define RPL_MULTIPATH_CONGESTION_INTERVAL RPL_CONF_MULTIPATH_CONGESTION_INTERVAL
+#else
+#define RPL_MULTIPATH_CONGESTION_INTERVAL 12
+#endif
+
+/* Threshold packet delivery ratio (PDR).
+ *
+ * If PDR falls below this threshold, congestion notifications would be sent.
+ * THRESHOLD / RANGE gives the actual ratio. The default value is 96/128 = 0.75.
+ */
+#ifdef RPL_CONF_MULTIPATH_CONGESTION_THRESHOLD
+#define RPL_MULTIPATH_CONGESTION_THRESHOLD RPL_CONF_MULTIPATH_CONGESTION_THRESHOLD
+#else
+#define RPL_MULTIPATH_CONGESTION_THRESHOLD 96
+#endif
+#ifdef RPL_CONF_MULTIPATH_CONGESTION_RANGE
+#define RPL_MULTIPATH_CONGESTION_RANGE RPL_CONF_MULTIPATH_CONGESTION_RANGE
+#else
+#define RPL_MULTIPATH_CONGESTION_RANGE 128
+#endif
+
 /** @} */
 
 #endif /* RPL_CONF_H */
