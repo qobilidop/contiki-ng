@@ -215,6 +215,11 @@ dio_input(void)
   memcpy(&dio.dag_id, buffer + i, sizeof(dio.dag_id));
   i += sizeof(dio.dag_id);
 
+#if RPL_WITH_MULTIPATH
+  int is_congested = buffer[i];
+  i++;
+#endif
+
   /* Check if there are any DIO suboptions. */
   for(; i < buffer_length; i += len) {
     subopt_type = buffer[i];
@@ -317,10 +322,20 @@ dio_input(void)
   LOG_INFO_6ADDR(&from);
   LOG_INFO_(", instance_id %u, DAG ID ", (unsigned)dio.instance_id);
   LOG_INFO_6ADDR(&dio.dag_id);
-  LOG_INFO_(", version %u, dtsn %u, rank %u\n",
+  LOG_INFO_(", version %u, dtsn %u, rank %u",
          (unsigned)dio.version,
          (unsigned)dio.dtsn,
          (unsigned)dio.rank);
+
+#if RPL_WITH_MULTIPATH
+  handle_congestion_info(from, is_congested);
+  LOG_INFO_(", is_congested %u \n", (unsigned)is_congested);
+  if (from == rpl_neighbor_get_ipaddr(curr_instance.dag.preferred_parent)) {
+    parent_is_congested = 1;
+  }
+#else
+  LOG_INFO_("\n");
+#endif
 
   rpl_process_dio(&from, &dio);
 
@@ -378,6 +393,14 @@ rpl_icmp6_dio_output(uip_ipaddr_t *uc_addr)
 
   memcpy(buffer + pos, &curr_instance.dag.dag_id, sizeof(curr_instance.dag.dag_id));
   pos += 16;
+
+#if RPL_WITH_MULTIPATH
+  if (self_is_congested) {
+    buffer[pos++] = 1; // congested
+  } else {
+    buffer[pos++] = 0;
+  }
+#endif
 
   if(!rpl_get_leaf_only()) {
     if(curr_instance.mc.type != RPL_DAG_MC_NONE) {
