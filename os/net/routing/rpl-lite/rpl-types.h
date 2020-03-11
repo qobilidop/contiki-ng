@@ -222,6 +222,15 @@ struct rpl_dag {
 };
 typedef struct rpl_dag rpl_dag_t;
 
+#if RPL_WITH_MULTIPATH
+struct rpl_multipath_state_t {
+    uint16_t pkt_cnt_rx;
+    uint16_t pkt_cnt_rx_exp;
+    uint16_t pkt_cnt_tx_dao;
+};
+typedef struct rpl_multipath_state_t rpl_multipath_state_t;
+#endif
+
 /*---------------------------------------------------------------------------*/
 /** \brief RPL instance structure */
 struct rpl_instance {
@@ -239,6 +248,9 @@ struct rpl_instance {
   uint8_t default_lifetime;
   uint16_t lifetime_unit; /* lifetime in seconds = lifetime_unit * default_lifetime */
   rpl_dag_t dag; /* We support only one dag */
+#if RPL_WITH_MULTIPATH
+  rpl_multipath_state_t mp;
+#endif /* RPL_WITH_MULTIPAH */
 };
 typedef struct rpl_instance rpl_instance_t;
 

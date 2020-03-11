@@ -45,6 +45,9 @@
 #include "sys/stimer.h"
 #include "lib/list.h"
 
+// FIXME: This is a trick to make the code compile.
+#include "net/routing/rpl-lite/rpl-conf.h"
+
 #ifdef UIP_CONF_MAX_ROUTES
 
 #define UIP_MAX_ROUTES UIP_CONF_MAX_ROUTES

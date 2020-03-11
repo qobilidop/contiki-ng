@@ -521,6 +521,11 @@ dao_input(void)
           memcpy(&dao.parent_addr, buffer + i + 6, 16);
         }
         break;
+#if RPL_WITH_MULTIPATH
+      case RPL_OPTION_DAG_METRIC_CONTAINER:
+        rpl_multipath_dao_input_callback(buffer, i);
+        break;
+#endif /* RPL_WITH_MULTIPATH */
     }
   }
 
@@ -603,6 +608,11 @@ rpl_icmp6_dao_output(uint8_t lifetime)
   pos += 8;
   memcpy(buffer + pos, ((const unsigned char *)parent_ipaddr) + 8, 8); /* Interface identifier */
   pos += 8;
+
+#if RPL_WITH_MULTIPATH
+  /* Abuse the DAG Metric Container option to pass value using DAO */
+  pos = rpl_multipath_dao_output_callback(buffer, pos, RPL_OPTION_DAG_METRIC_CONTAINER);
+#endif /* RPL_WITH_MULTIPATH */
 
   LOG_INFO("sending a %sDAO seqno %u, tx count %u, lifetime %u, prefix ",
          lifetime == 0 ? "No-path " : "",
