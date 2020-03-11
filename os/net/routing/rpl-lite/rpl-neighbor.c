@@ -352,6 +352,19 @@ rpl_neighbor_get_from_ipaddr(uip_ipaddr_t *addr)
   const uip_lladdr_t *lladdr = uip_ds6_nbr_get_ll(ds6_nbr);
   return nbr_table_get_from_lladdr(rpl_neighbors, (linkaddr_t *)lladdr);
 }
+
+rpl_nbr_t *
+rpl_neighbor_get_from_index(int idx)
+{
+  rpl_nbr_t *nbr;
+  for(nbr = nbr_table_head(rpl_neighbors); nbr != NULL; nbr = nbr_table_next(rpl_neighbors, nbr)){
+    if(idx==0){
+      return nbr;
+    }
+    --idx;
+  }
+  return NULL;
+}
 /*---------------------------------------------------------------------------*/
 static rpl_nbr_t *
 best_parent(int fresh_only)

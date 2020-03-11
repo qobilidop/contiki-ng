@@ -29,3 +29,7 @@ struct congestion_info {
 typedef struct congestion_info congestion_info_t;
 
 void handle_congestion_info(uip_ipaddr_t *node_addr, int is_congested);
+
+void rpl_multipath_start();
+
+void rpl_multipath_stop();
