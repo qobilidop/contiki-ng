@@ -15,6 +15,8 @@ static struct ctimer congestion_timer;
 uint16_t packet_count;
 static void handle_congestion_timer(void *ptr);
 void congestion_notification_clear();
+void send_congestion_notification();
+void send_congestion_notification_immediately()
 static congestion_info_t *first_congestion_info = malloc(sizeof(*first_congestion_info));
 first_congestion_info->node_addr = NULL;
 first_congestion_info->is_valid = 0;
@@ -62,13 +64,11 @@ congestion_notification_clear()
   parent_is_congested = 0;
   congestion_info_t *t;
   for (t = first_congestion_info; t->next_node != NULL; t = t->next_node) {
-    if (t->next_node->node_addr == node_addr) {
-      t->next_node->is_valid = 0;
-    }
+    t->next_node->is_valid = 0;
   }
 }
 /*---------------------------------------------------------------------------*/
-bool is_parent_congested()
+int is_parent_congested()
 {
   return parent_is_congested != 0;
 }
@@ -93,35 +93,6 @@ send_congestion_notification_immediately()
   rpl_icmp6_dio_output(NULL);
 }
 /*---------------------------------------------------------------------------*/
-void rpl_multipath_start() {
-
- // default_parent = curr_instance.dag.preferred_parent;
-
-     /*select path use probability 
-      int nbr_count = rpl_neighbor_count();
-      total_weight;
-      int rand = random_rand() % total_weight;
-    */
-
-    int nbr_count = rpl_neighbor_count();
-    int rand = random_rand() % 2;
-    if(rand == 0){
-      uip_ds6_defrt_multi(1, NULL);
-    }
-    else{
-      rand = random_rand() % nbr_count;
-      rpl_nbr_t *nbr = rpl_neighbor_get_from_index(rand);
-      uip_ds6_defrt_multi(1,uip_ds6_defrt_lookup(rpl_neighbor_get_ipaddr(nbr)));
-    }
-
-}
-
-/*---------------------------------------------------------------------------*/
-void rpl_multipath_stop() {
-  //rpl_neighbor_set_preferred_parent(default_parent);
-  uip_ds6_defrt_multi(0,NULL);
-}
-/*---------------------------------------------------------------------------*/
 void
 handle_congestion_info(uip_ipaddr_t *node_addr, int is_congested)
 {
@@ -133,7 +104,7 @@ handle_congestion_info(uip_ipaddr_t *node_addr, int is_congested)
       return;
     }
   }
-  congestion_info_t *new_congestion_info = malloc(sizeof(*congestion_info_t));
+  congestion_info_t *new_congestion_info = malloc(sizeof(*new_congestion_info));
   new_congestion_info->node_addr = node_addr;
   new_congestion_info->is_valid = 1;
   new_congestion_info->is_congested = is_congested;
@@ -160,7 +131,30 @@ get_neighbors_congestion_status()
   }
   return congested_count > total_count / 2;
 }
+/*---------------------------------------------------------------------------*/
+void rpl_multipath_start() {
+
+  // default_parent = curr_instance.dag.preferred_parent;
+
+  /*select path use probability
+   int nbr_count = rpl_neighbor_count();
+   total_weight;
+   int rand = random_rand() % total_weight;
+ */
+
+  int nbr_count = rpl_neighbor_count();
+  int rand = random_rand() % 2;
+  if(rand == 0){
+    uip_ds6_defrt_multi(1, NULL);
+  }
+  else{
+    rand = random_rand() % nbr_count;
+    rpl_nbr_t *nbr = rpl_neighbor_get_from_index(rand);
+    uip_ds6_defrt_multi(1,uip_ds6_defrt_lookup(rpl_neighbor_get_ipaddr(nbr)));
+  }
+}
+/*---------------------------------------------------------------------------*/
 void rpl_multipath_stop() {
-    //rpl_neighbor_set_preferred_parent(default_parent);
-    uip_ds6_defrt_multi(0,NULL);
+  //rpl_neighbor_set_preferred_parent(default_parent);
+  uip_ds6_defrt_multi(0,NULL);
 }

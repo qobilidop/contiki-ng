@@ -9,6 +9,9 @@
 /**
  * Initialize rpl-multipath module
 */
+
+#include <stdlib.h>
+
 void rpl_multipath_init(void);
 
 void rpl_multipath_packet_callback(void);
@@ -16,7 +19,7 @@ void rpl_multipath_packet_callback(void);
 void rpl_multipath_dio_input_callback(rpl_dio_t *);
 
 extern int self_is_congested = 0;
-extern uip_ipaddr_t *parent_addr = NULL;
+//extern uip_ipaddr_t *parent_addr = NULL;
 extern int parent_is_congested = 0;
 
 struct congestion_info {
