@@ -59,6 +59,7 @@ struct rpl_dio {
   uint8_t version;
   uint8_t instance_id;
   uint8_t dtsn;
+  uint8_t flags;
   uint8_t dag_intdoubl;
   uint8_t dag_intmin;
   uint8_t dag_redund;

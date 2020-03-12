@@ -205,7 +205,7 @@ init(void)
   rpl_icmp6_init();
 #if RPL_WITH_MULTIPATH
   rpl_multipath_init();
-#endif
+#endif /* RPL_WITH_MULTIPATH */
 
   uip_sr_init();
 }

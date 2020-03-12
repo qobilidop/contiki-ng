@@ -142,6 +142,9 @@ struct rpl_nbr {
 #endif /* RPL_WITH_MC */
   rpl_rank_t rank;
   uint8_t dtsn;
+#if RPL_WITH_MULTIPATH
+  bool cn;
+#endif /* RPL_WITH_MULTIPATH */
 };
 typedef struct rpl_nbr rpl_nbr_t;
 
@@ -223,13 +226,13 @@ struct rpl_dag {
 typedef struct rpl_dag rpl_dag_t;
 
 #if RPL_WITH_MULTIPATH
-struct rpl_multipath_state_t {
-    uint16_t pkt_cnt_rx;
-    uint16_t pkt_cnt_rx_exp;
-    uint16_t pkt_cnt_tx_dao;
+struct rpl_congestion_state {
+  bool self_congested;
+  bool parent_congested;
+  bool neighbors_congested;
 };
-typedef struct rpl_multipath_state_t rpl_multipath_state_t;
-#endif
+typedef struct rpl_congestion_state rpl_congestion_state_t;
+#endif /* RPL_WITH_MULTIPATH */
 
 /*---------------------------------------------------------------------------*/
 /** \brief RPL instance structure */
@@ -249,8 +252,8 @@ struct rpl_instance {
   uint16_t lifetime_unit; /* lifetime in seconds = lifetime_unit * default_lifetime */
   rpl_dag_t dag; /* We support only one dag */
 #if RPL_WITH_MULTIPATH
-  rpl_multipath_state_t mp;
-#endif /* RPL_WITH_MULTIPAH */
+  rpl_congestion_state_t cong_stat;
+#endif /* RPL_WITH_MULTIPATH */
 };
 typedef struct rpl_instance rpl_instance_t;
 

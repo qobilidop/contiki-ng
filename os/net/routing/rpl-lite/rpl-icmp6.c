@@ -209,16 +209,11 @@ dio_input(void)
   dio.preference = buffer[i++] & RPL_DIO_PREFERENCE_MASK;
 
   dio.dtsn = buffer[i++];
-  /* two reserved bytes */
-  i += 2;
+  dio.flags = buffer[i++];
+  i++; /* reserved */
 
   memcpy(&dio.dag_id, buffer + i, sizeof(dio.dag_id));
   i += sizeof(dio.dag_id);
-
-#if RPL_WITH_MULTIPATH
-  int is_congested = buffer[i];
-  i++;
-#endif
 
   /* Check if there are any DIO suboptions. */
   for(; i < buffer_length; i += len) {
@@ -322,20 +317,10 @@ dio_input(void)
   LOG_INFO_6ADDR(&from);
   LOG_INFO_(", instance_id %u, DAG ID ", (unsigned)dio.instance_id);
   LOG_INFO_6ADDR(&dio.dag_id);
-  LOG_INFO_(", version %u, dtsn %u, rank %u",
+  LOG_INFO_(", version %u, dtsn %u, rank %u\n",
          (unsigned)dio.version,
          (unsigned)dio.dtsn,
          (unsigned)dio.rank);
-
-#if RPL_WITH_MULTIPATH
-  handle_congestion_info(from, is_congested);
-  LOG_INFO_(", is_congested %u \n", (unsigned)is_congested);
-  if (from == rpl_neighbor_get_ipaddr(curr_instance.dag.preferred_parent)) {
-    parent_is_congested = 1;
-  }
-#else
-  LOG_INFO_("\n");
-#endif
 
   rpl_process_dio(&from, &dio);
 
@@ -388,19 +373,17 @@ rpl_icmp6_dio_output(uip_ipaddr_t *uc_addr)
   buffer[pos++] = curr_instance.dtsn_out;
 
   /* reserved 2 bytes */
-  buffer[pos++] = 0; /* flags */
+  buffer[pos] = 0; /* flags */
+#if RPL_WITH_MULTIPATH
+  if (curr_instance.cong_stat.self_congested) {
+    buffer[pos] |= RPL_DIO_CN_FLAG;
+  }
+#endif /* RPL_WITH_MULTIPATH */
+  ++pos;
   buffer[pos++] = 0; /* reserved */
 
   memcpy(buffer + pos, &curr_instance.dag.dag_id, sizeof(curr_instance.dag.dag_id));
   pos += 16;
-
-#if RPL_WITH_MULTIPATH
-  if (self_is_congested) {
-    buffer[pos++] = 1; // congested
-  } else {
-    buffer[pos++] = 0;
-  }
-#endif
 
   if(!rpl_get_leaf_only()) {
     if(curr_instance.mc.type != RPL_DAG_MC_NONE) {
@@ -485,6 +468,9 @@ dao_input(void)
   int len;
   int i;
   uip_ipaddr_t from;
+#if RPL_WITH_MULTIPATH
+  uint16_t tx_dao;
+#endif /* RPL_WITH_MULTIPATH */
 
   memset(&dao, 0, sizeof(dao));
 
@@ -546,7 +532,8 @@ dao_input(void)
         break;
 #if RPL_WITH_MULTIPATH
       case RPL_OPTION_DAG_METRIC_CONTAINER:
-        rpl_multipath_dao_input_callback(buffer, i);
+        memcpy(&tx_dao, buffer + i + 2, 2);
+        rpl_multipath_tx_dao_update(tx_dao);
         break;
 #endif /* RPL_WITH_MULTIPATH */
     }
@@ -634,7 +621,11 @@ rpl_icmp6_dao_output(uint8_t lifetime)
 
 #if RPL_WITH_MULTIPATH
   /* Abuse the DAG Metric Container option to pass value using DAO */
-  pos = rpl_multipath_dao_output_callback(buffer, pos, RPL_OPTION_DAG_METRIC_CONTAINER);
+  buffer[pos++] = RPL_OPTION_DAG_METRIC_CONTAINER;
+  buffer[pos++] = 2;
+  uint16_t tx_dao = rpl_multipath_tx_dao_reset();
+  memcpy(buffer + pos, &tx_dao, 2);
+  pos += 2;
 #endif /* RPL_WITH_MULTIPATH */
 
   LOG_INFO("sending a %sDAO seqno %u, tx count %u, lifetime %u, prefix ",

@@ -393,6 +393,14 @@ update_nbr_from_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
 #if RPL_WITH_MC
   memcpy(&nbr->mc, &dio->mc, sizeof(nbr->mc));
 #endif /* RPL_WITH_MC */
+#if RPL_WITH_MULTIPATH
+  if(dio->flags & RPL_DIO_CN_FLAG) {
+    nbr->cn = true;
+    rpl_multipath_handle_congestion_notification(from);
+  } else {
+    nbr->cn = false;
+  }
+#endif /* RPL_WITH_MULTIPATH */
 
   return nbr;
 }
@@ -646,6 +654,8 @@ rpl_process_dao(uip_ipaddr_t *from, rpl_dao_t *dao)
     rpl_timers_schedule_dao_ack(from, dao->sequence);
   }
 #endif /* RPL_WITH_DAO_ACK */
+
+
 }
 /*---------------------------------------------------------------------------*/
 #if RPL_WITH_DAO_ACK

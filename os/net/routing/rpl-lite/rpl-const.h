@@ -122,6 +122,9 @@
 #define RPL_DAO_ACK_UNABLE_TO_ADD_ROUTE_AT_ROOT 255 /* root can not accept */
 #define RPL_DAO_ACK_TIMEOUT              -1
 
+/* RPL_WITH_MULTIPATH */
+#define RPL_DIO_CN_FLAG                   0x80 /* DIO congestion notification */
+
 /*---------------------------------------------------------------------------*/
 /* RPL IPv6 extension header option. */
 #define RPL_HDR_OPT_LEN			               4
