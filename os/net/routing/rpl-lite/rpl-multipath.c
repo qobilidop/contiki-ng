@@ -7,10 +7,10 @@
  *
  */
 
+#include "contiki.h"
 #include "net/routing/rpl-lite/rpl.h"
 #include "net/ipv6/uip-ds6-route.h"
 #include "net/nbr-table.h"
-#include "lib/random.h"
 
 /* Log configuration */
 #include "sys/log.h"
@@ -25,6 +25,7 @@ typedef struct {
   uint16_t tx_dao;
 } packet_counter_t;
 static packet_counter_t packet_counter;
+rpl_multipath_t rpl_multipath;
 
 /*---------------------------------------------------------------------------*/
 static struct ctimer congestion_timer;
@@ -43,6 +44,7 @@ void send_congestion_notification_immediately(void);
 
 void rpl_multipath_start(void);
 void rpl_multipath_stop(void);
+rpl_nbr_t *find_alt_route(void);
 
 /*---------------------------------------------------------------------------*/
 /*------------------------------- Main ------------------------------------- */
@@ -51,6 +53,7 @@ void
 rpl_multipath_init(void)
 {
   rpl_multipath_reset();
+  rpl_multipath_stop();
   netstack_sniffer_add(&rpl_multipath_sniffer);
   ctimer_set(&congestion_timer, CONGESTION_INTERVAL_S, handle_congestion_timer, NULL);
 }
@@ -167,31 +170,37 @@ send_congestion_notification_immediately(void)
 void
 rpl_multipath_start(void)
 {
-  // default_parent = curr_instance.dag.preferred_parent;
-
-  /*select path use probability
-   int nbr_count = rpl_neighbor_count();
-   total_weight;
-   int rand = random_rand() % total_weight;
- */
-
-  int nbr_count = rpl_neighbor_count();
-  int rand = random_rand() % 2;
-  if(rand == 0){
-    uip_ds6_defrt_multi(1, NULL);
-  }
-  else{
-    rand = random_rand() % nbr_count;
-    rpl_nbr_t *nbr = rpl_neighbor_get_from_index(rand);
-    uip_ds6_defrt_multi(1,uip_ds6_defrt_lookup(rpl_neighbor_get_ipaddr(nbr)));
+  rpl_multipath_stop();
+  rpl_nbr_t *alt_route = find_alt_route();
+  if (alt_route != NULL) {
+    uip_ds6_defrt_add(rpl_neighbor_get_ipaddr(alt_route), 0);
+    rpl_multipath.alt_route = alt_route;
+    rpl_multipath.on = true;
   }
 }
 /*---------------------------------------------------------------------------*/
 void
 rpl_multipath_stop(void)
 {
-    //rpl_neighbor_set_preferred_parent(default_parent);
-    uip_ds6_defrt_multi(0,NULL);
+  rpl_multipath.on = false;
+  rpl_multipath.skip = false;
+  uip_ds6_defrt_rm(uip_ds6_defrt_lookup(
+    rpl_neighbor_get_ipaddr(rpl_multipath.alt_route)));
+  rpl_multipath.alt_route = NULL;
+}
+/*---------------------------------------------------------------------------*/
+rpl_nbr_t *
+find_alt_route(void)
+{
+  rpl_nbr_t *nbr = nbr_table_head(rpl_neighbors);
+  while(nbr != NULL) {
+    if (rpl_neighbor_is_parent(nbr) && !nbr->cn &&
+        nbr != curr_instance.dag.preferred_parent) {
+      return nbr;
+    }
+    nbr = nbr_table_next(rpl_neighbors, nbr);
+  }
+  return NULL;
 }
 /*---------------------------------------------------------------------------*/
 

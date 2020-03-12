@@ -46,6 +46,9 @@
 #include "lib/memb.h"
 #include "net/nbr-table.h"
 
+/* RPL_WITH_MULTIPATH */
+#include "net/routing/rpl-lite/rpl.h"
+
 /* Log configuration */
 #include "sys/log.h"
 #define LOG_MODULE "IPv6 Route"
@@ -92,11 +95,6 @@ static int num_routes = 0;
 static void rm_routelist_callback(nbr_table_item_t *ptr);
 
 #endif /* (UIP_MAX_ROUTES != 0) */
-
-#if RPL_WITH_MULTIPATH
-static int multi_defrt = 0;
-static uip_ds6_defrt_t* altrt;
-#endif
 
 /* Default routes are held on the defaultrouterlist and their
    structures are allocated from the defaultroutermemb memory block.*/
@@ -713,10 +711,20 @@ uip_ds6_defrt_choose(void)
   uip_ipaddr_t *addr;
 
   addr = NULL;
-#if !RPL_WITH_MULTIPATH
   for(d = list_head(defaultrouterlist);
       d != NULL;
       d = list_item_next(d)) {
+#if RPL_WITH_MULTIPATH
+    if(rpl_multipath.on) {
+      // There should be 2 routes in the list.
+      // By skipping the first route every other time,
+      // we would choose both routes with equal probability.
+      rpl_multipath.skip = !rpl_multipath.skip;
+      if (rpl_multipath.skip) {
+        continue;
+      }
+    }
+#endif /* RPL_WITH_MULTIPATH */
     LOG_INFO("Default route, IP address ");
     LOG_INFO_6ADDR(&d->ipaddr);
     LOG_INFO_("\n");
@@ -733,29 +741,6 @@ uip_ds6_defrt_choose(void)
       LOG_INFO_("\n");
     }
   }
-#else
-  if(multi_defrt && altrt){
-    d = altrt;
-  }
-  else{
-    d = list_head(defaultrouterlist);
-  }
-  LOG_INFO("Default route, IP address ");
-  LOG_INFO_6ADDR(&d->ipaddr);
-  LOG_INFO_("\n");
-  bestnbr = uip_ds6_nbr_lookup(&d->ipaddr);
-  if(bestnbr != NULL && bestnbr->state != NBR_INCOMPLETE) {
-    LOG_INFO("Default route found, IP address ");
-    LOG_INFO_6ADDR(&d->ipaddr);
-    LOG_INFO_("\n");
-    return &d->ipaddr;
-  } else {
-    addr = &d->ipaddr;
-    LOG_INFO("Default route Incomplete found, IP address ");
-    LOG_INFO_6ADDR(&d->ipaddr);
-    LOG_INFO_("\n");
-  }
-#endif
   return addr;
 }
 /*---------------------------------------------------------------------------*/
@@ -775,13 +760,5 @@ uip_ds6_defrt_periodic(void)
     }
   }
 }
-
-#if RPL_WITH_MULTIPATH
-void uip_ds6_defrt_multi(int enable, uip_ds6_defrt_t* rt)
-{
-  multi_defrt = enable;
-  altrt = rt;
-}
-#endif
 /*---------------------------------------------------------------------------*/
 /** @} */

@@ -211,10 +211,6 @@ uip_ds6_defrt_t *uip_ds6_defrt_lookup(const uip_ipaddr_t *ipaddr);
 const uip_ipaddr_t *uip_ds6_defrt_choose(void);
 
 void uip_ds6_defrt_periodic(void);
-
-#if RPL_WITH_MULTIPATH
-void uip_ds6_defrt_multi(int enable, uip_ds6_defrt_t* rt);
-#endif
 /** @} */
 
 
