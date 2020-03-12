@@ -29,8 +29,8 @@ static packet_counter_t packet_counter;
 /*---------------------------------------------------------------------------*/
 static struct ctimer congestion_timer;
 
-static void handle_congestion_timer(void *ptr);
 static void rpl_multipath_reset(void);
+static void handle_congestion_timer(void *ptr);
 
 void detect_congestion(void);
 /* A net-layer sniffer for packets sent and received */
@@ -56,20 +56,6 @@ rpl_multipath_init(void)
 }
 /*---------------------------------------------------------------------------*/
 static void
-handle_congestion_timer(void *ptr)
-{
-  detect_congestion();
-  if (curr_instance.cong_stat.self_congested) {
-    send_congestion_notification();
-  }
-  if (!curr_instance.cong_stat.parent_congested) {
-    rpl_multipath_stop();
-  }
-  rpl_multipath_reset();
-  ctimer_reset(&congestion_timer);
-}
-/*---------------------------------------------------------------------------*/
-static void
 rpl_multipath_reset(void)
 {
   rpl_nbr_t *nbr;
@@ -78,10 +64,26 @@ rpl_multipath_reset(void)
   packet_counter.rx_exp = 0;
   packet_counter.tx_dao = 0;
 
+  curr_instance.congested = false;
+
   nbr = nbr_table_head(rpl_neighbors);
   while(nbr != NULL) {
     nbr->cn = false;
   }
+}
+/*---------------------------------------------------------------------------*/
+static void
+handle_congestion_timer(void *ptr)
+{
+  detect_congestion();
+  if (curr_instance.congested) {
+    send_congestion_notification();
+  }
+  if (!curr_instance.dag.preferred_parent->cn) {
+    rpl_multipath_stop();
+  }
+  rpl_multipath_reset();
+  ctimer_reset(&congestion_timer);
 }
 /*---------------------------------------------------------------------------*/
 /*------------------------- Congestion detection --------------------------- */
@@ -89,11 +91,9 @@ rpl_multipath_reset(void)
 void
 detect_congestion(void)
 {
-  curr_instance.cong_stat.self_congested = false;
-
   uint16_t threshold = packet_counter.rx_exp * RPL_MULTIPATH_CONGESTION_THRESHOLD / RPL_MULTIPATH_CONGESTION_RANGE;
   if(packet_counter.rx < threshold) {
-    curr_instance.cong_stat.self_congested = true;
+    curr_instance.congested = true;
     return;
   }
 
@@ -109,7 +109,7 @@ detect_congestion(void)
     }
   }
   if(total < (congested << 1)) {
-    curr_instance.cong_stat.self_congested = true;
+    curr_instance.congested = true;
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -139,14 +139,12 @@ rpl_multipath_output_callback(int mac_status) {
 /*---------------------------------------------------------------------------*/
 /*------------------------- Congestion notification ------------------------ */
 /*---------------------------------------------------------------------------*/
-// TODO: probably need to modify rpl_dio_t
 void
 rpl_multipath_handle_congestion_notification(uip_ipaddr_t *from)
 {
-  rpl_nbr_t *nbr;
-
-  nbr = rpl_neighbor_get_from_ipaddr(from);
-  if (nbr == curr_instance.dag.preferred_parent) {
+  rpl_nbr_t *nbr_from;
+  nbr_from = rpl_neighbor_get_from_ipaddr(from);
+  if (nbr_from == curr_instance.dag.preferred_parent) {
     rpl_multipath_start();
   }
 }

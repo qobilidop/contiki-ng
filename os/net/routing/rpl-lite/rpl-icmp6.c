@@ -375,7 +375,7 @@ rpl_icmp6_dio_output(uip_ipaddr_t *uc_addr)
   /* reserved 2 bytes */
   buffer[pos] = 0; /* flags */
 #if RPL_WITH_MULTIPATH
-  if (curr_instance.cong_stat.self_congested) {
+  if (curr_instance.congested) {
     buffer[pos] |= RPL_DIO_CN_FLAG;
   }
 #endif /* RPL_WITH_MULTIPATH */

@@ -225,15 +225,6 @@ struct rpl_dag {
 };
 typedef struct rpl_dag rpl_dag_t;
 
-#if RPL_WITH_MULTIPATH
-struct rpl_congestion_state {
-  bool self_congested;
-  bool parent_congested;
-  bool neighbors_congested;
-};
-typedef struct rpl_congestion_state rpl_congestion_state_t;
-#endif /* RPL_WITH_MULTIPATH */
-
 /*---------------------------------------------------------------------------*/
 /** \brief RPL instance structure */
 struct rpl_instance {
@@ -252,7 +243,7 @@ struct rpl_instance {
   uint16_t lifetime_unit; /* lifetime in seconds = lifetime_unit * default_lifetime */
   rpl_dag_t dag; /* We support only one dag */
 #if RPL_WITH_MULTIPATH
-  rpl_congestion_state_t cong_stat;
+  bool congested;
 #endif /* RPL_WITH_MULTIPATH */
 };
 typedef struct rpl_instance rpl_instance_t;
