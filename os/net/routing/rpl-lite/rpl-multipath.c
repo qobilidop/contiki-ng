@@ -78,6 +78,10 @@ static void
 handle_congestion_timer(void *ptr)
 {
   LOG_INFO("handle congestion timer\n");
+  LOG_INFO("rx: %u, rx_exp: %u, tx_dao: %u\n",
+    packet_counter.rx, packet_counter.rx_exp, packet_counter.tx_dao);
+  LOG_INFO("congested: %u, on: %u, skip: %u\n",
+    curr_instance.congested, rpl_multipath.on, rpl_multipath.skip);
   detect_congestion();
   if (curr_instance.congested) {
     send_congestion_notification();
@@ -95,7 +99,7 @@ handle_congestion_timer(void *ptr)
 void
 detect_congestion(void)
 {
-  LOG_INFO("detect_congestion\n");
+  LOG_INFO("detect congestion\n");
   uint16_t threshold = packet_counter.rx_exp * RPL_MULTIPATH_CONGESTION_THRESHOLD / RPL_MULTIPATH_CONGESTION_RANGE;
   LOG_INFO("rx: %u, threshold: %u\n", packet_counter.rx, packet_counter.rx_exp);
   if(packet_counter.rx < threshold) {
@@ -125,12 +129,17 @@ detect_congestion(void)
 void
 rpl_multipath_tx_dao_update(uint16_t tx_dao)
 {
+  LOG_INFO("tx_dao update\n");
+  uint16_t rx_exp = packet_counter.rx_exp;
   packet_counter.rx_exp += tx_dao;
+  LOG_INFO("rx_exp from: %u, to: %u\n", rx_exp, packet_counter.rx_exp);
 }
 /*---------------------------------------------------------------------------*/
 uint16_t
 rpl_multipath_tx_dao_reset(void)
 {
+  LOG_INFO("tx_dao reset\n");
+  LOG_INFO("tx_dao from: %u, to: 0\n", packet_counter.tx_dao);
   uint16_t tx_dao = packet_counter.tx_dao;
   packet_counter.tx_dao = 0;
   return tx_dao;
