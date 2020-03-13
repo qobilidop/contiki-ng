@@ -167,6 +167,10 @@ send_congestion_notification(void)
 void
 send_congestion_notification_immediately(void)
 {
+  /* Make sure the DAG is ready before sending out DIO */
+  if(!rpl_dag_ready_to_advertise()) {
+    return;
+  }
   rpl_icmp6_dio_output(NULL);
 }
 /*---------------------------------------------------------------------------*/
