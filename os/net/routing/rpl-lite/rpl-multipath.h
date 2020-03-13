@@ -34,10 +34,19 @@ extern rpl_multipath_t rpl_multipath;
 */
 void rpl_multipath_init(void);
 
+/**
+ * Update packet counter using the tx_dao value passed along DAO
+*/
 void rpl_multipath_tx_dao_update(uint16_t tx_dao);
 
+/**
+ * Return the current tx_dao value and reset
+*/
 uint16_t rpl_multipath_tx_dao_reset(void);
 
+/**
+ * Update internal states when a congestion notification is received
+*/
 void rpl_multipath_handle_congestion_notification(uip_ipaddr_t *from);
 
 /** @} */

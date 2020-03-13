@@ -36,7 +36,6 @@ rpl_multipath_t rpl_multipath;
 /*---------------------------------------------------------------------------*/
 static struct ctimer congestion_timer;
 
-static void rpl_multipath_reset(void);
 static void handle_congestion_timer(void *ptr);
 
 void detect_congestion(void);
@@ -60,28 +59,19 @@ void
 rpl_multipath_init(void)
 {
   LOG_INFO("use multipath rpl.\n");
-  rpl_multipath_reset();
-  rpl_multipath_stop();
-  netstack_sniffer_add(&rpl_multipath_sniffer);
-  ctimer_set(&congestion_timer, CONGESTION_INTERVAL_S, handle_congestion_timer, NULL);
-  LOG_INFO("after use multipath rpl.\n");
-}
-/*---------------------------------------------------------------------------*/
-static void
-rpl_multipath_reset(void)
-{
+
   packet_counter.rx = 0;
   packet_counter.rx_exp = 0;
   packet_counter.tx_dao = 0;
+  netstack_sniffer_add(&rpl_multipath_sniffer);
 
-  //do not need to reset congestion status
-  //rpl_nbr_t *nbr;
-  // curr_instance.congested = false;
+  rpl_multipath.on = false;
+  rpl_multipath.skip = false;
+  rpl_multipath.alt_route = NULL;
 
-  // nbr = nbr_table_head(rpl_neighbors);
-  // while(nbr != NULL) {
-  //   nbr->cn = false;
-  // }
+  ctimer_set(&congestion_timer, CONGESTION_INTERVAL_S, handle_congestion_timer, NULL);
+
+  LOG_INFO("after use multipath rpl.\n");
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -95,7 +85,8 @@ handle_congestion_timer(void *ptr)
   if (curr_instance.dag.preferred_parent != NULL && !curr_instance.dag.preferred_parent->cn) {
     rpl_multipath_stop();
   }
-  rpl_multipath_reset();
+  packet_counter.rx = 0;
+  packet_counter.rx_exp = 0;
   ctimer_reset(&congestion_timer);
 }
 /*---------------------------------------------------------------------------*/
@@ -160,9 +151,8 @@ rpl_multipath_output_callback(int mac_status) {
 void
 rpl_multipath_handle_congestion_notification(uip_ipaddr_t *from)
 {
-  rpl_nbr_t *nbr_from;
-  nbr_from = rpl_neighbor_get_from_ipaddr(from);
-  if (nbr_from == curr_instance.dag.preferred_parent) {
+  if (!rpl_multipath.on &&
+      rpl_neighbor_get_from_ipaddr(from) == curr_instance.dag.preferred_parent) {
     rpl_multipath_start();
   }
 }
@@ -185,11 +175,10 @@ send_congestion_notification_immediately(void)
 void
 rpl_multipath_start(void)
 {
-  rpl_multipath_stop();
   rpl_nbr_t *alt_route;
   #if !MRPL_RANDOM
     alt_route= find_alt_route();
-  #else 
+  #else
     alt_route= find_alt_route_random(MRPL_RANDOM_TIMES);
   #endif
   LOG_INFO_6ADDR(rpl_neighbor_get_ipaddr(alt_route));
@@ -205,9 +194,11 @@ rpl_multipath_stop(void)
 {
   rpl_multipath.on = false;
   rpl_multipath.skip = false;
-  uip_ds6_defrt_rm(uip_ds6_defrt_lookup(
-    rpl_neighbor_get_ipaddr(rpl_multipath.alt_route)));
-  rpl_multipath.alt_route = NULL;
+  if(rpl_multipath.alt_route != NULL) {
+    uip_ds6_defrt_rm(uip_ds6_defrt_lookup(
+      rpl_neighbor_get_ipaddr(rpl_multipath.alt_route)));
+    rpl_multipath.alt_route = NULL;
+  }
 }
 /*---------------------------------------------------------------------------*/
 rpl_nbr_t *
