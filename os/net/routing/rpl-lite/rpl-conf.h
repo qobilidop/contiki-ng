@@ -418,7 +418,7 @@
 #ifdef RPL_CONF_WITH_MULTIPATH
 #define RPL_WITH_MULTIPATH RPL_CONF_WITH_MULTIPATH
 #else
-#define RPL_WITH_MULTIPATH 1
+#define RPL_WITH_MULTIPATH 0
 #endif
 
 /* The congestion detection interval (n) represents 2^n ms.
