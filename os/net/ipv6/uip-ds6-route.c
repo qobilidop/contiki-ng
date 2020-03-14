@@ -712,19 +712,22 @@ uip_ds6_defrt_choose(void)
   uip_ipaddr_t *addr;
 
   addr = NULL;
+#if RPL_WITH_MULTIPATH
+  // There should be 2 routes in the list.
+  // By skipping the first route every other time,
+  // we would choose both routes with equal probability.
+  if(rpl_multipath.on) {
+    rpl_multipath.skip = !rpl_multipath.skip;
+  }
+#endif /* RPL_WITH_MULTIPATH */
   for(d = list_head(defaultrouterlist);
       d != NULL;
       d = list_item_next(d)) {
 #if RPL_WITH_MULTIPATH
-    if(rpl_multipath.on) {
-      // There should be 2 routes in the list.
-      // By skipping the first route every other time,
-      // we would choose both routes with equal probability.
-      rpl_multipath.skip = !rpl_multipath.skip;
-      if (rpl_multipath.skip) {
-        continue;
-      }
+    if(rpl_multipath.on && rpl_multipath.skip) {
+      continue;
     }
+    LOG_INFO("RPL multipath, on: %u, skip: %d\n", rpl_multipath.on, rpl_multipath.skip);
 #endif /* RPL_WITH_MULTIPATH */
     LOG_INFO("Default route, IP address ");
     LOG_INFO_6ADDR(&d->ipaddr);
