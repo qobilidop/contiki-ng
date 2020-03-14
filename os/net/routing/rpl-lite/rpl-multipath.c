@@ -110,7 +110,7 @@ detect_congestion(void)
   /* Detect if self is congested */
   uint16_t thresh_min = packet_counter.rx_exp * RPL_MULTIPATH_CONGESTION_THRESH_MIN / RPL_MULTIPATH_CONGESTION_THRESH_SCALE;
   uint16_t thresh_max = packet_counter.rx_exp * RPL_MULTIPATH_CONGESTION_THRESH_MAX / RPL_MULTIPATH_CONGESTION_THRESH_SCALE;
-  LOG_INFO("rx: %u, threshold: %u\n", packet_counter.rx, packet_counter.rx_exp);
+  LOG_INFO("rx: %u, rx_exp: %u\n", packet_counter.rx, packet_counter.rx_exp);
   if(packet_counter.rx < thresh_min || packet_counter.rx > thresh_max) {
     LOG_INFO("self is detected to be congested\n");
     curr_instance.congested = true;
@@ -141,7 +141,9 @@ detect_congestion(void)
 void
 rpl_multipath_process_prn(uint16_t prn)
 {
+  LOG_INFO("update rx_exp from %u", packet_counter.rx_exp);
   packet_counter.rx_exp += prn;
+  LOG_INFO_(" to %u\n", packet_counter.rx_exp);
 }
 /*---------------------------------------------------------------------------*/
 uint16_t
