@@ -132,6 +132,11 @@ void rpl_icmp6_dao_output(uint8_t lifetime);
 void rpl_icmp6_dao_ack_output(uip_ipaddr_t *dest, uint8_t sequence, uint8_t status);
 
 /**
+ * Creates an ICMPv6 PRN packet and sends it to the parent.
+*/
+void rpl_icmp6_prn_output(void);
+
+/**
  * Initializes rpl-icmp6 module, registers ICMPv6 handlers for all
  * RPL ICMPv6 messages: DIO, DIS, DAO and DAO-ACK
 */

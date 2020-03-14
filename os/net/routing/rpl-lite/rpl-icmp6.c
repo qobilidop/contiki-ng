@@ -78,6 +78,11 @@ static void dao_ack_input(void);
 UIP_ICMP6_HANDLER(dao_ack_handler, ICMP6_RPL, RPL_CODE_DAO_ACK, dao_ack_input);
 #endif /* RPL_WITH_DAO_ACK */
 
+#if RPL_WITH_MULTIPATH
+static void prn_input(void);
+UIP_ICMP6_HANDLER(prn_handler, ICMP6_RPL, RPL_CODE_PRN, prn_input);
+#endif /* RPL_WITH_MULTIPATH */
+
 /*---------------------------------------------------------------------------*/
 static uint32_t
 get32(uint8_t *buffer, int pos)
@@ -468,9 +473,6 @@ dao_input(void)
   int len;
   int i;
   uip_ipaddr_t from;
-#if RPL_WITH_MULTIPATH
-  uint16_t tx_dao;
-#endif /* RPL_WITH_MULTIPATH */
 
   memset(&dao, 0, sizeof(dao));
 
@@ -530,12 +532,6 @@ dao_input(void)
           memcpy(&dao.parent_addr, buffer + i + 6, 16);
         }
         break;
-#if RPL_WITH_MULTIPATH
-      case RPL_OPTION_DAG_METRIC_CONTAINER:
-        memcpy(&tx_dao, buffer + i + 2, 2);
-        rpl_multipath_tx_dao_update(tx_dao);
-        break;
-#endif /* RPL_WITH_MULTIPATH */
     }
   }
 
@@ -619,15 +615,6 @@ rpl_icmp6_dao_output(uint8_t lifetime)
   memcpy(buffer + pos, ((const unsigned char *)parent_ipaddr) + 8, 8); /* Interface identifier */
   pos += 8;
 
-#if RPL_WITH_MULTIPATH
-  /* Abuse the DAG Metric Container option to pass value using DAO */
-  buffer[pos++] = RPL_OPTION_DAG_METRIC_CONTAINER;
-  buffer[pos++] = 2;
-  uint16_t tx_dao = rpl_multipath_tx_dao_reset();
-  memcpy(buffer + pos, &tx_dao, 2);
-  pos += 2;
-#endif /* RPL_WITH_MULTIPATH */
-
   LOG_INFO("sending a %sDAO seqno %u, tx count %u, lifetime %u, prefix ",
          lifetime == 0 ? "No-path " : "",
          curr_instance.dag.dao_last_seqno, curr_instance.dag.dao_transmissions, lifetime);
@@ -696,6 +683,69 @@ rpl_icmp6_dao_ack_output(uip_ipaddr_t *dest, uint8_t sequence, uint8_t status)
   uip_icmp6_send(dest, ICMP6_RPL, RPL_CODE_DAO_ACK, 4);
 }
 #endif /* RPL_WITH_DAO_ACK */
+#if RPL_WITH_MULTIPATH
+/*---------------------------------------------------------------------------*/
+static void
+prn_input(void)
+{
+  unsigned char *buffer;
+  int pos;
+  uint8_t instance_id;
+  uint16_t prn;
+
+  buffer = UIP_ICMP_PAYLOAD;
+  pos = 0;
+
+  instance_id = buffer[pos++];
+  prn = get16(buffer, pos);
+  pos += 2;
+
+  if(!curr_instance.used || curr_instance.instance_id != instance_id) {
+    LOG_ERR("prn_input: unknown instance, discard\n");
+    goto discard;
+  }
+
+  LOG_INFO("received a PRN from ");
+  LOG_INFO_6ADDR(&UIP_IP_BUF->srcipaddr);
+  LOG_INFO_("\n");
+
+  rpl_multipath_process_prn(prn);
+
+  discard:
+    uipbuf_clear();
+}
+/*---------------------------------------------------------------------------*/
+void
+rpl_icmp6_prn_output(void)
+{
+  unsigned char *buffer;
+  int pos;
+  uint16_t prn;
+  uip_ipaddr_t *parent_ipaddr = rpl_neighbor_get_ipaddr(curr_instance.dag.preferred_parent);
+
+  /* Make sure we're up-to-date before sending data out */
+  rpl_dag_update_state();
+
+  if(curr_instance.dag.preferred_parent == NULL) {
+    LOG_WARN("rpl_icmp6_prn_output: no preferred parent, skip sending PRN\n");
+    return;
+  }
+
+  buffer = UIP_ICMP_PAYLOAD;
+  pos = 0;
+
+  buffer[pos++] = curr_instance.instance_id;
+  prn = rpl_multipath_prepare_prn();
+  set16(buffer, pos, prn);
+  pos += 2;
+
+  LOG_INFO("sending a PRN to ");
+  LOG_INFO_6ADDR(parent_ipaddr);
+  LOG_INFO_("\n");
+
+  uip_icmp6_send(parent_ipaddr, ICMP6_RPL, RPL_CODE_PRN, pos);
+}
+#endif /* RPL_WITH_MULTIPATH */
 /*---------------------------------------------------------------------------*/
 void
 rpl_icmp6_init()
@@ -706,6 +756,9 @@ rpl_icmp6_init()
 #if RPL_WITH_DAO_ACK
   uip_icmp6_register_input_handler(&dao_ack_handler);
 #endif /* RPL_WITH_DAO_ACK */
+#if RPL_WITH_MULTIPATH
+  uip_icmp6_register_input_handler(&prn_handler);
+#endif /* RPL_WITH_MULTIPATH */
 }
 /*---------------------------------------------------------------------------*/
 

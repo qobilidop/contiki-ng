@@ -28,7 +28,7 @@
 typedef struct {
   uint16_t rx;
   uint16_t rx_exp;
-  uint16_t tx_dao;
+  uint16_t tx;
 } packet_counter_t;
 static packet_counter_t packet_counter;
 rpl_multipath_t rpl_multipath;
@@ -62,7 +62,7 @@ rpl_multipath_init(void)
 
   packet_counter.rx = 0;
   packet_counter.rx_exp = 0;
-  packet_counter.tx_dao = 0;
+  packet_counter.tx = 0;
   netstack_sniffer_add(&rpl_multipath_sniffer);
 
   rpl_multipath.on = false;
@@ -78,10 +78,11 @@ static void
 handle_congestion_timer(void *ptr)
 {
   LOG_INFO("handle congestion timer\n");
-  LOG_INFO("rx: %u, rx_exp: %u, tx_dao: %u\n",
-    packet_counter.rx, packet_counter.rx_exp, packet_counter.tx_dao);
+  LOG_INFO("rx: %u, rx_exp: %u, tx: %u\n",
+    packet_counter.rx, packet_counter.rx_exp, packet_counter.tx);
   LOG_INFO("congested: %u, on: %u, skip: %u, alt_route set: %u\n",
     curr_instance.congested, rpl_multipath.on, rpl_multipath.skip, rpl_multipath.alt_route != NULL);
+
   detect_congestion();
   if (curr_instance.congested) {
     send_congestion_notification();
@@ -89,8 +90,10 @@ handle_congestion_timer(void *ptr)
   if (curr_instance.dag.preferred_parent != NULL && !curr_instance.dag.preferred_parent->cn) {
     rpl_multipath_stop();
   }
+
   packet_counter.rx = 0;
   packet_counter.rx_exp = 0;
+  rpl_icmp6_prn_output();
   ctimer_reset(&congestion_timer);
 }
 /*---------------------------------------------------------------------------*/
@@ -109,6 +112,7 @@ detect_congestion(void)
   uint16_t thresh_max = packet_counter.rx_exp * RPL_MULTIPATH_CONGESTION_THRESH_MAX / RPL_MULTIPATH_CONGESTION_THRESH_SCALE;
   LOG_INFO("rx: %u, threshold: %u\n", packet_counter.rx, packet_counter.rx_exp);
   if(packet_counter.rx < thresh_min || packet_counter.rx > thresh_max) {
+    LOG_INFO("self is detected to be congested\n");
     curr_instance.congested = true;
     return;
   }
@@ -126,28 +130,26 @@ detect_congestion(void)
     }
   }
   if(total < (congested << 1)) {
+    LOG_INFO("most neighbors are detected to be congested\n");
     curr_instance.congested = true;
     return;
   }
+
+  LOG_INFO("congestion is not detected\n");
 }
 /*---------------------------------------------------------------------------*/
 void
-rpl_multipath_tx_dao_update(uint16_t tx_dao)
+rpl_multipath_process_prn(uint16_t prn)
 {
-  LOG_INFO("tx_dao update\n");
-  uint16_t rx_exp = packet_counter.rx_exp;
-  packet_counter.rx_exp += tx_dao;
-  LOG_INFO("rx_exp from: %u, to: %u\n", rx_exp, packet_counter.rx_exp);
+  packet_counter.rx_exp += prn;
 }
 /*---------------------------------------------------------------------------*/
 uint16_t
-rpl_multipath_tx_dao_reset(void)
+rpl_multipath_prepare_prn(void)
 {
-  LOG_INFO("tx_dao reset\n");
-  LOG_INFO("tx_dao from: %u, to: 0\n", packet_counter.tx_dao);
-  uint16_t tx_dao = packet_counter.tx_dao;
-  packet_counter.tx_dao = 0;
-  return tx_dao;
+  uint16_t prn = packet_counter.tx;
+  packet_counter.tx = 0;
+  return prn;
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -157,7 +159,7 @@ rpl_multipath_input_callback(void) {
 /*---------------------------------------------------------------------------*/
 static void
 rpl_multipath_output_callback(int mac_status) {
-  packet_counter.tx_dao++;
+  packet_counter.tx++;
 }
 /*---------------------------------------------------------------------------*/
 /*------------------------- Congestion notification ------------------------ */

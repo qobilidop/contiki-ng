@@ -46,8 +46,9 @@
 #include "lib/memb.h"
 #include "net/nbr-table.h"
 
-/* RPL_WITH_MULTIPATH */
+#if RPL_WITH_MULTIPATH
 #include "net/routing/rpl-lite/rpl.h"
+#endif /* RPL_WITH_MULTIPATH */
 
 /* Log configuration */
 #include "sys/log.h"

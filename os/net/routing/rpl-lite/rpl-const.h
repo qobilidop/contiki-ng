@@ -96,6 +96,9 @@
 #define RPL_CODE_DIO                   0x01   /* DAG Information Option */
 #define RPL_CODE_DAO                   0x02   /* Destination Advertisement Option */
 #define RPL_CODE_DAO_ACK               0x03   /* DAO acknowledgment */
+/* if RPL_WITH_MULTIPATH */
+#define RPL_CODE_PRN                   0x04   /* Packet Rate Notification */
+/* endif RPL_WITH_MULTIPATH */
 #define RPL_CODE_SEC_DIS               0x80   /* Secure DIS */
 #define RPL_CODE_SEC_DIO               0x81   /* Secure DIO */
 #define RPL_CODE_SEC_DAO               0x82   /* Secure DAO */
@@ -122,8 +125,9 @@
 #define RPL_DAO_ACK_UNABLE_TO_ADD_ROUTE_AT_ROOT 255 /* root can not accept */
 #define RPL_DAO_ACK_TIMEOUT              -1
 
-/* RPL_WITH_MULTIPATH */
-#define RPL_DIO_CN_FLAG                   0x80 /* DIO congestion notification */
+/* if RPL_WITH_MULTIPATH */
+#define RPL_DIO_CN_FLAG                  0x80 /* DIO congestion notification */
+/* endif RPL_WITH_MULTIPATH */
 
 /*---------------------------------------------------------------------------*/
 /* RPL IPv6 extension header option. */
