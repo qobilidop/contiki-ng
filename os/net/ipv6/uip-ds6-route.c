@@ -712,21 +712,20 @@ uip_ds6_defrt_choose(void)
   uip_ipaddr_t *addr;
 
   addr = NULL;
+  d = list_head(defaultrouterlist);
 #if RPL_WITH_MULTIPATH
-  // There should be 2 routes in the list.
+  // There should be at most 2 routes in the list.
   // By skipping the first route every other time,
   // we would choose both routes with equal probability.
   if(rpl_multipath.on) {
+    if(rpl_multipath.skip) {
+      d = list_item_next(d);
+    }
     rpl_multipath.skip = !rpl_multipath.skip;
   }
 #endif /* RPL_WITH_MULTIPATH */
-  for(d = list_head(defaultrouterlist);
-      d != NULL;
-      d = list_item_next(d)) {
+  while(d != NULL) {
 #if RPL_WITH_MULTIPATH
-    if(rpl_multipath.on && rpl_multipath.skip) {
-      continue;
-    }
     LOG_INFO("RPL multipath, on: %u, skip: %d\n", rpl_multipath.on, rpl_multipath.skip);
 #endif /* RPL_WITH_MULTIPATH */
     LOG_INFO("Default route, IP address ");
@@ -743,6 +742,7 @@ uip_ds6_defrt_choose(void)
       LOG_INFO("Default route Incomplete found, IP address ");
       LOG_INFO_6ADDR(&d->ipaddr);
       LOG_INFO_("\n");
+      d = list_item_next(d);
     }
   }
   return addr;
